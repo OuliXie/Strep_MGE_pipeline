@@ -21,6 +21,7 @@ These scripts are tested with the following dependencies and versions
 - csvtk v0.23.0
 - samtools v1.15.1
 - bedtools v2.30.0
+- pybedtools v0.9.0
 - emapper v2.1.7 (with eggNOG DB v5.2.0)
 
 ## Updates from previous version described at https://github.com/OuliXie/Global_SDSE

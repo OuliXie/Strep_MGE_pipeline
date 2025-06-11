@@ -59,24 +59,10 @@ do
     if grep -qvE "^#" hmm_results/${hmms%.hmm}.out
     then
     # Organise output from hmmsearch taking gene name, recombinase hit and bit score
-    grep -vE "^#" hmm_results/${hmms%.hmm}.out | sed 's/ \+/ /g' | cut -d" " -f1,3,6 \
-        | sed 's/ /,/g' | csvtk add-header -n Gene,recombinase,score > ${temp_dir}/${hmms%.hmm}.recombinase.clean
+    grep -vE "^#" hmm_results/${hmms%.hmm}.out | sed 's/ \+/ /g' | awk '{print $1 "," $3 "," $6}' \
+        | csvtk add-header -n Gene,recombinase,score > ${temp_dir}/${hmms%.hmm}.recombinase.clean
     fi
 done < ${temp_dir}/recombinase_hmms.tmp
-
-# Gives merged list of gene/recombinase combinations but may have duplicates if multiple hmmer hits
-count=$(ls ${temp_dir}/*.T4SS.clean | wc -l )
-if [ $count -gt 1 ]
-then
-        csvtk join -O -f "Gene,T4SS,score" ${temp_dir}/*.T4SS.clean > ${temp_dir}/T4SS.merged
-elif [ $count -eq 1 ]
-then
-	echo "Hits obtained to only one ICE-specific hmm. Pipeline proceeding but consider if you pangenome diversity may be too low for this script."
-        cat ${temp_dir}/*.T4SS.clean > ${temp_dir}/T4SS.merged
-else
-        echo "No ICE hmm hits. Check pangenome if this is true! Your pangenome diversity may be too low for this script."
-        exit 1
-fi
 
 # Take only the highest bit scoring recombinase for each gene
 seq_uniq=$(csvtk del-header ${temp_dir}/recombinase.merged | csvtk cut -f 1 | sort -u)
@@ -104,13 +90,24 @@ do
     if grep -qvE "^#" hmm_results/${hmms%.hmm}.out
     then
     # Organise output from hmmsearch taking gene name, recombinase hit and bit score
-    grep -vE "^#" hmm_results/${hmms%.hmm}.out | sed 's/ \+/ /g' | cut -d" " -f1,3,6 \
-        | sed 's/ /,/g' | csvtk add-header -n Gene,T4SS,score > ${temp_dir}/${hmms%.hmm}.T4SS.clean
+    grep -vE "^#" hmm_results/${hmms%.hmm}.out | sed 's/ \+/ /g' | awk '{print $1 "," $3 "," $6}' \
+        | csvtk add-header -n Gene,T4SS,score > ${temp_dir}/${hmms%.hmm}.T4SS.clean
     fi
 done < ${temp_dir}/T4SS_hmms.tmp
 
 # Gives merged list of gene/recombinase combinations but may have duplicates if multiple hmmer hits
-csvtk join -O -f "Gene,T4SS,score" ${temp_dir}/*.T4SS.clean > ${temp_dir}/T4SS.merged
+count=$(ls ${temp_dir}/*.T4SS.clean | wc -l )
+if [ $count -gt 1 ]
+then
+        csvtk join -O -f "Gene,T4SS,score" ${temp_dir}/*.T4SS.clean > ${temp_dir}/T4SS.merged
+elif [ $count -eq 1 ]
+then
+        echo "Hits obtained to only one ICE-specific hmm. Pipeline proceeding but consider if you pangenome diversity may be too low for this script."
+        cat ${temp_dir}/*.T4SS.clean > ${temp_dir}/T4SS.merged
+else
+        echo "No ICE hmm hits. Check pangenome if this is true! Your pangenome diversity may be too low for this script."
+        exit 1
+fi
 
 # Take only the highest bit scoring T4SS protein for each gene
 seq_uniq=$(csvtk del-header ${temp_dir}/T4SS.merged | csvtk cut -f 1 | sort -u)
