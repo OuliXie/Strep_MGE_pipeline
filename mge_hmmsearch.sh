@@ -16,7 +16,7 @@ usage() { echo "usage $(basename $0)
 	[-e add extra DDE_strep and IS30 recombinases]" 1>&2; exit 1; }
 
 
-while getopts ':g:i:p:h' OPTION; do
+while getopts ':g:i:p:eh' OPTION; do
     case "${OPTION}" in
         g)
             g=${OPTARG}
@@ -82,13 +82,25 @@ if [ $recom_ex == 1 ] ; then
 fi
 
 # Gives merged list of gene/recombinase combinations but may have duplicates if multiple hmmer hits
-csvtk join -O -f "Gene,recombinase,score" ${temp_dir}/*.recombinase.clean > ${temp_dir}/recombinase.merged
+# And rename DDE_strep recombinase hits
+csvtk join -O -f "Gene,recombinase,score" ${temp_dir}/*.recombinase.clean | \
+    sed 's/UPF0236/DDE_strep/g' > ${temp_dir}/recombinase.merged
 
 # Take only the highest bit scoring recombinase for each gene
 seq_uniq=$(csvtk del-header ${temp_dir}/recombinase.merged | csvtk cut -f 1 | sort -u)
 for seq in ${seq_uniq}
 # Use non-csvtk commands so don't have to deal with header
-do grep -E "^${seq}," ${temp_dir}/recombinase.merged | sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+# Prioritise original pro-MGE pHMM hits
+do
+    # See if hit to DDE_strep or IS30 AND another recombinase
+    if [ grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -qE "DDE_strep|IS30" ] -a \
+        [ grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -qvE "DDE_strep|IS30" ]
+    then
+        grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -vE "DDE_strep|IS30" | \
+         sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+    else
+        grep -E "^${seq}," ${temp_dir}/recombinase.merged | sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+    fi
 done
 # Add back header and remove bit score column
 # And fix IS30 naming
