@@ -13,7 +13,7 @@ usage() { echo "usage $(basename $0)
 	[-g path/to/pan_genome_reference.fa]
 	[-i path/to/gene_presence_absence.csv]
 	[-p path/to/hmm/folder]
-	[-e add extra DDE_strep and IS30 recombinases]" 1>&2; exit 1; }
+	[-e add extra DDE_strep and IS30 recombinases and suppress Casposon]" 1>&2; exit 1; }
 
 
 while getopts ':g:i:p:eh' OPTION; do
@@ -52,10 +52,10 @@ fi
 temp_dir="$(mktemp -p . -d temp.XXXXXX)"
 
 # List recombinase hmms
-# Check if wanting the extra strep-specific recombinases (run ISEScan pHMM separately)
+# Check if wanting the extra strep-specific recombinases (run ISEScan pHMM separately) and suppress Casposon
 if [ $recom_ex == 1 ] ; then 
-	ls ${p}/recombinase | grep .hmm | grep -v ISEScan > ${temp_dir}/recombinase_hmms.tmp
-# If haven't run the -e flag then include only original proMGE recombinases
+	ls ${p}/recombinase | grep .hmm | grep -v ISEScan | grep -v cas1 > ${temp_dir}/recombinase_hmms.tmp
+# If haven't run the -e flag then include only original proMGE recombinases and Casposon
 else
 	ls ${p}/recombinase | grep .hmm | grep -v DDE_strep | grep -v ISEScan > ${temp_dir}/recombinase_hmms.tmp
 fi
