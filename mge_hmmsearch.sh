@@ -44,6 +44,10 @@ if [ -z "${g}" ] || [ -z "${i}" ] || [ -z "${p}" ]; then
     usage
 fi
 
+if [ -z "${recom_ex}" ]; then
+    recom_ex=0
+fi
+
 # Make temp directory
 temp_dir="$(mktemp -p . -d temp.XXXXXX)"
 
