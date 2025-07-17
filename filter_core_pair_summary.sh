@@ -2,10 +2,11 @@
 
 # Script for filtering core_pair_summary by max accessory content
 # Then calls per_pair_accessory.sh to generate csv with accessory genes between each core pair with accessory >= cutoff
+# To include DDE_strep and IS30 recombinases, please use the -e flag in mge_hmmsearch.sh upstream of this script
 
 # Requires csvtk, pandas and numpy
-# Has been tested with conda install of Panaroo v1.2.10 which includes python v3.7.12 and numpy v1.21.6
-# Installed pandas v1.3.4 and csvtk v0.23.0 on top of this conda environment 
+# Has been tested with conda install of Panaroo v1.5.2 which includes python v3.11.0, numpy v2.2.6, bedtools 2.31.1
+# Installed pandas v2.3.1, csvtk v0.34.0, pybedtools 0.12.0 on top of this conda environment 
 
 # Gene names cannot contain hyphen "-". Hyphen can only exist between core pair
 # order_annotated_gene_presence_absence.sh should be run first in the same directory

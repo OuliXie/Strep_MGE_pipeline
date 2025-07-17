@@ -179,6 +179,6 @@ csvtk join -L -f "Gene" ${temp_dir}/gene_presence_absence_T4SS.csv ${temp_dir}/p
 #### Separate python script for applying rules for each segment by genome - add to per_pair_accessory.sh script
 
 # Clean temporary directory
-#rm -r ${temp_dir}
+rm -r ${temp_dir}
 
 printf "Script has completed! \nUse annotated_gene_presence_absence.csv with filter_core_pair_summary.sh\n"

@@ -7,7 +7,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import pybedtools
-from Bio.Sequencing.Applications import SamtoolsFaidxCommandline
+import subprocess
 
 
 # Script for extracting user specified accessory genes between core-core segments
@@ -64,8 +64,8 @@ def getfasta(bedtools_start, bedtools_end, chrom, sequence, output, fasta_list, 
         exit(1)
     # Check if fasta has been index
     if not os.path.exists(fasta_file + ".fai"):
-        samtools_faidx_cmd = SamtoolsFaidxCommandline(reference=fasta_file)
-        samtools_faidx_cmd()
+        faidx_cmd = ["samtools", "faidx", fasta_file]
+        subprocess.run(faidx_cmd, check=True)
     # Extract using bedtools getfasta
     fasta = bed.sequence(fi=fasta_file, nameOnly=True)
     gff = pybedtools.BedTool(gff_file).intersect(bed, u=True)
