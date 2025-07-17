@@ -93,12 +93,14 @@ for seq in ${seq_uniq}
 # Prioritise original pro-MGE pHMM hits
 do
     # See if hit to DDE_strep or IS30 AND another recombinase
-    if [ grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -qE "DDE_strep|IS30" ] -a \
-        [ grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -qvE "DDE_strep|IS30" ]
+    DDE=$(grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -E "DDE_strep|IS30")
+    nonDDE=$(grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -vE "DDE_strep|IS30")
+    if [[ ! -z "$DDE" && ! -z "$nonDDE" ]]
     then
         grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -vE "DDE_strep|IS30" | \
          sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
     else
+        # Take the top overall hit
         grep -E "^${seq}," ${temp_dir}/recombinase.merged | sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
     fi
 done
