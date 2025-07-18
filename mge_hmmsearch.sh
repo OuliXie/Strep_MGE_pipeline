@@ -109,9 +109,9 @@ do
     fi
 done
 # Add back header and remove bit score column
-# And fix IS30 naming
+# And fix IS30 naming and Rep_2 naming
 csvtk add-header -n Gene,recombinase,score ${temp_dir}/recombinase.uniq | \
-    sed 's/IS30_[^,]*/IS30/g' | \
+    sed 's/IS30_[^,]*/IS30/g' | sed 's/Rep_OBD/Rep_2/g' \
     csvtk cut -f Gene,recombinase > ${temp_dir}/recombinase.uniq.clean
 
 # Merge recombinase genes with gene_presence_absence.csv
