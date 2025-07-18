@@ -7,6 +7,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import pybedtools
+from pybedtools import BedTool
 import subprocess
 
 
@@ -30,7 +31,7 @@ def parse_gff(file):
     for line in split.splitlines():
         if "##" not in line:
             body.append(line.replace(" ", "_"))
-    gff_file = pybedtools.BedTool("\n".join(body), from_string=True)
+    gff_file = BedTool("\n".join(body), from_string=True)
 
     return gff_file
 
@@ -45,9 +46,9 @@ def getfasta(bedtools_start, bedtools_end, chrom, sequence, output, fasta_list, 
     if not os.path.exists(gff_folder):
         os.mkdir(gff_folder)
     # Set interval for extraction in bed format - note these coordinates are already in bed format
-    bed = pybedtools.BedTool(str(chrom) + "\t" + str(bedtools_start) + "\t" + str(bedtools_end) + "\t" +
-                             sequence + ";" + os.path.basename(output) + ";" + str(chrom) + ":" +
-                             str(bedtools_start) + "-" + str(bedtools_end), from_string=True)
+    bed = BedTool(str(chrom) + "\t" + str(bedtools_start) + "\t" + str(bedtools_end) + "\t" +
+                  sequence + ";" + os.path.basename(output) + ";" + str(chrom) + ":" +
+                  str(bedtools_start) + "-" + str(bedtools_end), from_string=True)
     fasta_file = [x for x in fasta_list if os.path.basename(x).startswith(sequence + ".") or
                   os.path.basename(x).startswith(sequence + "_")]
     # Read in gff
@@ -68,7 +69,7 @@ def getfasta(bedtools_start, bedtools_end, chrom, sequence, output, fasta_list, 
         subprocess.run(faidx_cmd, check=True)
     # Extract using bedtools getfasta
     fasta = bed.sequence(fi=fasta_file, nameOnly=True)
-    gff = pybedtools.BedTool(gff_file).intersect(bed, u=True)
+    gff = BedTool(gff_file).intersect(bed, u=True)
     # Save fasta file
     fasta_name = os.path.join(fasta_folder, str(sequence) + "_" + os.path.basename(output) + ".fa")
     fasta.save_seqs(fasta_name)

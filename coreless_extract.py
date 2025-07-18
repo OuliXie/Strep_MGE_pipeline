@@ -7,8 +7,9 @@ import argparse
 import pandas as pd
 import numpy as np
 import pybedtools
+from pybedtools import BedTool
 from tqdm import tqdm
-from Bio.Sequencing.Applications import SamtoolsFaidxCommandline
+import subprocess
 
 
 # Script for extracting coreless segment to look for missed phage/ICE
@@ -27,9 +28,9 @@ def getfasta(bedtools_start, bedtools_end, chrom, sequence, output, subdir, fast
     if not os.path.exists(gff_folder):
         os.mkdir(gff_folder)
     # Set interval for extraction in bed format - note these coordinates are already in bed format
-    bed = pybedtools.BedTool(str(chrom) + "\t" + str(bedtools_start) + "\t" + str(bedtools_end) + "\t" +
-                             sequence + ";" + os.path.basename(subdir) + ";" + str(chrom) + ":" +
-                             str(bedtools_start) + "-" + str(bedtools_end), from_string=True)
+    bed = BedTool(str(chrom) + "\t" + str(bedtools_start) + "\t" + str(bedtools_end) + "\t" +
+                  sequence + ";" + os.path.basename(subdir) + ";" + str(chrom) + ":" +
+                  str(bedtools_start) + "-" + str(bedtools_end), from_string=True)
     fasta_file = [x for x in fasta_list if os.path.basename(x).startswith(sequence + ".") or
                   os.path.basename(x).startswith(sequence + "_")]
     # Check only one match
@@ -39,11 +40,11 @@ def getfasta(bedtools_start, bedtools_end, chrom, sequence, output, subdir, fast
         print("Error: " + str(len(fasta_file)) + " matches for " + sequence + ".fa or " + sequence + ".fasta")
         exit(1)
     if not os.path.exists(fasta_file + ".fai"):
-        samtools_faidx_cmd = SamtoolsFaidxCommandline(reference=fasta_file)
-        samtools_faidx_cmd()
+        faidx_cmd = ["samtools", "faidx", fasta_file]
+        subprocess.run(faidx_cmd, check=True)
     # Extract using bedtools getfasta
     fasta = bed.sequence(fi=fasta_file, nameOnly=True)
-    gff = pybedtools.BedTool(gff_bedtools).intersect(bed, u=True)
+    gff = BedTool(gff_bedtools).intersect(bed, u=True)
     # Save fasta file
     fasta_name = os.path.join(fasta_folder, str(sequence) + "_" + os.path.basename(subdir) + ".fa")
     fasta.save_seqs(fasta_name)
@@ -82,7 +83,7 @@ def parse_gff(sequence, gff_list, coreless_contigs):
         elif "##" not in line:
             body.append(line.replace(" ", "_"))
 
-    gff_bedtools = pybedtools.BedTool("\n".join(body), from_string=True)
+    gff_bedtools = BedTool("\n".join(body), from_string=True)
 
     return contig_length, gff_bedtools
 
