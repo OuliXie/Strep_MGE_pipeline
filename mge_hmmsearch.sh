@@ -126,7 +126,7 @@ ls ${p}/T4SS | grep .hmm > ${temp_dir}/T4SS_hmms.tmp
 # Save hmmsersearch results for inspection later
 while read hmms
 do
-    hmmsearch -E 0.001 --tblout hmm_results/${hmms%.hmm}.out ${p}/T4SS/${hmms} ${g} > /dev/null
+    hmmsearch -E 0.001 --nobias --tblout hmm_results/${hmms%.hmm}.out ${p}/T4SS/${hmms} ${g} > /dev/null
     if grep -qvE "^#" hmm_results/${hmms%.hmm}.out
     then
     # Organise output from hmmsearch taking gene name, recombinase hit and bit score
