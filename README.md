@@ -70,7 +70,7 @@ Run
 ```
 $ bash mge_hmmsearch.sh 
     -g <pangenome_reference_protein.fa> 
-    -i <gene_presence_absence.csv> 
+    -i <gene_presence_absence_roary.csv> 
     -p <path/to/hmms/folder>
     -e <include additional recombinase pHMMs and ignore Casposon recombinase>
 ```
