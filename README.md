@@ -5,23 +5,23 @@ Automated MGE class calling from pangenomes using Corekaburra (https://github.co
 This is an update of the pipeline described at https://github.com/OuliXie/Global_SDSE
 
 Modified from the MGE classification scheme developed by Khedkar S. et al. NAR 2022 DOI: 10.1093/nar/gkac163.
-Requires recombinase profile HMMs available at https://promge.embl.de/download.cgi, Smyshlyaev G. et al. Mol Sys Biol 2021 (https://doi.org/10.15252/msb.20209880), and pfam (https://www.ebi.ac.uk/interpro/) with pfam profile HMM names provided in Supplementary Table 1 in the ProMGE publication by Khedkar et al.
+Requires recombinase profile HMMs available at https://promge.embl.de/download.cgi, Smyshlyaev G. et al. Mol Sys Biol 2021 (https://doi.org/10.15252/msb.20209880), ISEScan (https://doi.org/10.1093/bioinformatics/btx433) and pfam (https://www.ebi.ac.uk/interpro/) with pfam profile HMM names provided in Supplementary Table 1 in the ProMGE publication by Khedkar et al.
 Requires type 4 secretion system (T4SS) profile HMMs from MacSyFinder (https://github.com/gem-pasteur/Macsyfinder_models/tree/master/models/TXSS/profiles) doi:10.1371/journal.pone.0110726
 
 A convenience script is provided to download the profile HMMs
 
 These scripts are tested with the following dependencies and versions
-- Panaroo v1.2.10
+- Panaroo v1.5.2
 - Corekaburra v0.0.5
-- hmmer 3.3.2
-- Biopython v1.79
-- Python v3.7.12
-- Numpy v1.21.6
-- Pandas v1.3.4
-- csvtk v0.23.0
-- samtools v1.15.1
-- bedtools v2.30.0
-- pybedtools v0.9.0
+- hmmer 3.4
+- Biopython v1.85
+- Python v3.11.13
+- Numpy v2.2.6
+- Pandas v2.3.1
+- csvtk v0.34.0
+- samtools v1.22.1
+- bedtools v2.31.1
+- pybedtools v0.12.0
 - emapper v2.1.7 (with eggNOG DB v5.2.0)
 
 ## Updates from previous version described at https://github.com/OuliXie/Global_SDSE
@@ -30,9 +30,18 @@ These scripts are tested with the following dependencies and versions
 - Extracts fasta and gff of all accessory segments from each genome
 - Post-processing script provided to summarise MGEs to user-specified insertion sites
 
+## Update 21 July 2025
+
+- Added ICE-associated recombinase pHMM PF06782 (from Ambroset et al. https://doi.org/10.3389/fmicb.2015.01483)
+- Added IS30 pHMMs from ISEScan
+- The above recombinases are available with the `-e` flag in the `mge_hmmsearch.sh` script
+- Updated scripts to work with Panaroo v1.5.2
+
 ## Usage
 
-Should first construct pangenome using Panaroo and analyse pangenome gene synteny using Corekaburra. Gffs used in Corekaburra and this pipeline should be updated after running Panaroo to correct for filtered and refound genes (https://gtonkinhill.github.io/panaroo/#/post/output_gffs).
+Should first construct pangenome using Panaroo and analyse pangenome gene synteny using Corekaburra. Please run Panaroo with `-a pan` to generate a pangenome alignment (required for this pipeline).
+Gffs used in Corekaburra and this pipeline should be updated after running Panaroo to correct for filtered and refound genes (https://gtonkinhill.github.io/panaroo/#/post/output_gffs).
+
 Classification of accessory segments will be influenced by the diversity of genomes used to build the pangenome. e.g., if all isolates are from a closely related outbreak, a universally present prophage will be classified as core and will be missed by this pipeline.
 Detection of IS may also be influenced by parameters used to construct pangenome. For example, Panaroo in `--clean-mode strict` will tend to remove IS annotations at the end of contigs and may result in underestimation of IS elements (particularly for SDSE). 
 Should run Panaroo with `-a pan` to output alignment of all genes.
@@ -41,10 +50,12 @@ Should run Panaroo with `-a pan` to output alignment of all genes.
 Download profile HMMs.
 Run `$bash get_hmms.sh`
 
-Will download required profile HMMs from proMGE, pfam and MacSyFinder.
+Will download required profile HMMs from proMGE, pfam, ISEScan and MacSyFinder.
 Profile HMMs will be placed in subdirectories `hmms/recombinase` and `hmms/T4SS`
 
 Need to manually download "Source Data for Appendix" from Smyshlyaev G. et al. Mol Sys Biol 2021 (https://doi.org/10.15252/msb.20209880), extract zip file and move `TRdb.hmm` to `hmms/recombinase`
+
+OR can be found in the `hmms` folder in this repository
 
 **Step 2.**
 Run `$ python get_pangenome_protein.py -i <path/to/directory/containing/MSA>`
@@ -55,7 +66,14 @@ Excludes sequences with an internal stop codon and takes longest remaining seque
 Generates representative protein pangenome file pan_genome_reference_protein.fa
 
 **Step 3.**
-Run `$ bash mge_hmmsearch.sh -g <pangenome_reference_protein.fa> -i <gene_presence_absence.csv> -p <path/to/hmms/folder>`
+Run 
+```
+$ bash mge_hmmsearch.sh 
+    -g <pangenome_reference_protein.fa> 
+    -i <gene_presence_absence.csv> 
+    -p <path/to/hmms/folder>
+    -e <include additional recombinase pHMMs and ignore Casposon recombinase>
+```
 
 Runs hmmsearch against pangenome genes to annotate recombinase/integrase genes from mobile genetic elements (MGEs).
 Looks for recombinase subfamilies, phage structural proteins and essential type IV secretion system proteins (coupling protein, ATPase).
@@ -65,6 +83,8 @@ Consider running eggnog-mapper separately as takes >30 mins - commented out of s
 e.g. `$ python emapper.py -i pan_genome_reference_protein.fa -o sdse`
 
 Expects hmms folder to contain subdirectories hmms/recombinase and hmms/T4SS containing their profile hmms
+
+`-e` will include an additional ICE-associated DDE recombinase and IS30-recombinase pHMM which are missed by the proMGE default recombinases. proMGE recombinases are prioritised before annotating using additional pHMMs. Additionally, will suppress the Casposon recombinase as this generally hits cas1.
 
 **Step 4.**
 Run `$ python order_gene_presence_absence.py -i <annotated_gene_presence_absence.csv> -g <path/to/postpanaroo_gffs/directory> -o <output> (default ordered_gene_presence_absence)`
@@ -130,9 +150,9 @@ similar to *summary_mge_count.csv* but with element counts removed
 a comma delimited file in the style of Roary gene_presence_absence.csv with the addition of classification of each genes into core, non-MGE accessory, or MGE type. In addition, the frequency each gene appears within a MGE type is listed. 
 
 Extracts accessory segment fasta and gffs:
-- fastas are saved in a subdirectory designated by their respective flanking core gene pair within `per_pair_output/segment_fasta/` <br\>
+- fastas are saved in a subdirectory designated by their respective flanking core gene pair within `per_pair_output/segment_fasta/` <br/>
 fastas are extracted from the nucleotide after the first flanking core gene to the nucleotide immediately before the second flanking core gene or the end of a contig in the case of a sequence break
-- gffs are saved in a subdirectory designated by their respective flanking core gene pair within `per_pair_output/segment_gff/` <br\>
+- gffs are saved in a subdirectory designated by their respective flanking core gene pair within `per_pair_output/segment_gff/` <br/>
 gffs are extracted from the first accessory CDS to the last accessory CDS
 
 Additionally, interim files with the accessory segment and MGE classifications for each genome and core-core combination are saved in a subdirectory `per_pair_output/` for manual inspection if desired.
