@@ -9,10 +9,14 @@
 # Pan_genome_reference.fa should be translated to protein sequence - see get_pangenome_protein.py 
 # Requires csvtk and hmmer3
 
-usage() { echo "usage $(basename $0) [-g path/to/pan_genome_reference.fa] [-i path/to/gene_presence_absence.csv] [-p path/to/hmm/folder]" 1>&2; exit 1; }
+usage() { echo "usage $(basename $0) 
+	[-g path/to/pan_genome_reference.fa]
+	[-i path/to/gene_presence_absence.csv]
+	[-p path/to/hmm/folder]
+	[-e add extra DDE_strep and IS30 recombinases and suppress Casposon]" 1>&2; exit 1; }
 
 
-while getopts ':g:i:p:h' OPTION; do
+while getopts ':g:i:p:eh' OPTION; do
     case "${OPTION}" in
         g)
             g=${OPTARG}
@@ -23,6 +27,9 @@ while getopts ':g:i:p:h' OPTION; do
         p)
             p=${OPTARG}
             ;;
+	e)
+	    recom_ex=1
+	    ;;
         h)
             usage
             ;;
@@ -37,17 +44,21 @@ if [ -z "${g}" ] || [ -z "${i}" ] || [ -z "${p}" ]; then
     usage
 fi
 
-# Modules/conda environments to run on Spartan
-# module load miniconda3/4.9.2
-# source activate csvtk
-# module load foss/2020b
-# module load hmmer/3.3.2
+if [ -z "${recom_ex}" ]; then
+    recom_ex=0
+fi
 
 # Make temp directory
 temp_dir="$(mktemp -p . -d temp.XXXXXX)"
 
 # List recombinase hmms
-ls ${p}/recombinase | grep .hmm > ${temp_dir}/recombinase_hmms.tmp
+# Check if wanting the extra strep-specific recombinases (run ISEScan pHMM separately) and suppress Casposon
+if [ $recom_ex == 1 ] ; then 
+	ls ${p}/recombinase | grep .hmm | grep -v ISEScan | grep -v cas1 > ${temp_dir}/recombinase_hmms.tmp
+# If haven't run the -e flag then include only original proMGE recombinases and Casposon
+else
+	ls ${p}/recombinase | grep .hmm | grep -v DDE_strep | grep -v ISEScan > ${temp_dir}/recombinase_hmms.tmp
+fi
 
 # Run hmmersearch for each recombinase profile HMM against representative pangenome
 # Save hmmersearch results in separate directory for inspection later
@@ -64,14 +75,43 @@ do
     fi
 done < ${temp_dir}/recombinase_hmms.tmp
 
+# Now run ISEScan hmms if -e selected - use 1e-50 reporting threshold which is default for ISEScan
+if [ $recom_ex == 1 ] ; then
+    hmmsearch --tblout hmm_results/ISEScan.out -E 1e-50 ${p}/recombinase/ISEScan.hmm ${g} > /dev/null
+    # Check there has been a hit and filter for only IS30
+    if grep -qvE "^#" hmm_results/ISEScan.out ; then
+        grep -vE "^#" hmm_results/ISEScan.out | sed 's/ \+/ /g' | awk '{print $1 "," $3 "," $6}' \
+            | grep IS30 | csvtk add-header -n Gene,recombinase,score > ${temp_dir}/ISEScan.recombinase.clean
+    fi
+fi
+
+# Gives merged list of gene/recombinase combinations but may have duplicates if multiple hmmer hits
+# And rename DDE_strep recombinase hits
+csvtk join -O -f "Gene,recombinase,score" ${temp_dir}/*.recombinase.clean | \
+    sed 's/UPF0236/DDE_strep/g' > ${temp_dir}/recombinase.merged
+
 # Take only the highest bit scoring recombinase for each gene
 seq_uniq=$(csvtk del-header ${temp_dir}/recombinase.merged | csvtk cut -f 1 | sort -u)
 for seq in ${seq_uniq}
 # Use non-csvtk commands so don't have to deal with header
-do grep -E "^${seq}," ${temp_dir}/recombinase.merged | sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+# Prioritise original pro-MGE pHMM hits
+do
+    # See if hit to DDE_strep or IS30 AND another recombinase
+    DDE=$(grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -E "DDE_strep|IS30")
+    nonDDE=$(grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -vE "DDE_strep|IS30")
+    if [[ ! -z "$DDE" && ! -z "$nonDDE" ]]
+    then
+        grep -E "^${seq}," ${temp_dir}/recombinase.merged | grep -vE "DDE_strep|IS30" | \
+         sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+    else
+        # Take the top overall hit
+        grep -E "^${seq}," ${temp_dir}/recombinase.merged | sort -t"," -k3 -r -g | head -1 >> ${temp_dir}/recombinase.uniq
+    fi
 done
 # Add back header and remove bit score column
+# And fix IS30 naming and Rep_2 naming
 csvtk add-header -n Gene,recombinase,score ${temp_dir}/recombinase.uniq | \
+    sed 's/IS30_[^,]*/IS30/g' | sed 's/Rep_OBD/Rep_2/g' | \
     csvtk cut -f Gene,recombinase > ${temp_dir}/recombinase.uniq.clean
 
 # Merge recombinase genes with gene_presence_absence.csv
@@ -86,7 +126,7 @@ ls ${p}/T4SS | grep .hmm > ${temp_dir}/T4SS_hmms.tmp
 # Save hmmsersearch results for inspection later
 while read hmms
 do
-    hmmsearch -E 0.001 --tblout hmm_results/${hmms%.hmm}.out ${p}/T4SS/${hmms} ${g} > /dev/null
+    hmmsearch -E 0.001 --nobias --tblout hmm_results/${hmms%.hmm}.out ${p}/T4SS/${hmms} ${g} > /dev/null
     if grep -qvE "^#" hmm_results/${hmms%.hmm}.out
     then
     # Organise output from hmmsearch taking gene name, recombinase hit and bit score

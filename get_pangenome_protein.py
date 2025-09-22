@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 def trim_seq(record):
     # remove gaps and trim sequence to multiple of 3
-    no_gap = record.seq.ungap("-")
+    no_gap = record.seq.replace("-", "")
     remainder = len(no_gap) % 3
     if remainder == 0:
         return SeqRecord(seq = Seq(no_gap), id = record.id, description = "")

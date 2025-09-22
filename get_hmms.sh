@@ -30,3 +30,7 @@ do
 	wget -O ${name} ${path}
 	mv ${name} hmms/T4SS
 done < txss_hmms.txt
+
+# Get ISEScan hmms - we will only use IS30 element from this
+wget https://raw.githubusercontent.com/xiezhq/ISEScan/refs/heads/master/pHMMs/clusters.faa.hmm -O ISEScan.hmm
+mv ISEScan.hmm hmms/recombinase

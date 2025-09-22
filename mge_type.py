@@ -142,6 +142,7 @@ def classify(segment, recombinase_dict):
     mge_df = segment
 
     # looks for recombinase, phage/ICE genes, and classifies elements
+    # Suppress Casposons
     rec_genes = segment["Recombinase"].dropna().to_list()
     phage_genes = int(np.sum(segment["Ph_gene"]))
     T4SS_genes = segment["T4SS"].dropna().to_list()
